@@ -1,0 +1,5 @@
+requests
+pandas
+pyarrow
+boto3
+openpyxl

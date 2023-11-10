@@ -1,6 +1,8 @@
 
+
 from typing import Optional, Dict
 import os
+import sys
 import time
 import datetime as dt
 import logging
@@ -9,6 +11,7 @@ import boto3
 import pandas as pd
 import requests as req
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.module.api_status_check import api_status_check
 
 
@@ -18,21 +21,23 @@ from src.module.api_status_check import api_status_check
 class CollectPublicData(object):
 
     def __init__(self,
-                 aws_access_key_id: Optional[str]=None,
-                 aws_secret_access_key: Optional[str]=None):
+                 aws_access_key_id=None,
+                 aws_secret_access_key=None):
 
         self._get_data = None
         self._pd_data = None
         self._now = None
 
-        if aws_access_key_id or aws_secret_access_key:
-            self.__aws_access_key_id = aws_access_key_id
-            self.__aws_secret_access_key = aws_secret_access_key
-            self.__s3_client = None
-        else:
+        self.__aws_access_key_id = aws_access_key_id
+        self.__aws_secret_access_key = aws_secret_access_key
+
+        if aws_access_key_id and aws_secret_access_key:
             self.__s3_client = boto3.client("s3",
                                             aws_access_key_id=self.__aws_access_key_id,
                                             aws_secret_access_key=self.__aws_secret_access_key)
+        else:
+
+            self.__s3_client = None
 
     @api_status_check
     def api_request(self,url):
@@ -65,9 +70,9 @@ class CollectPublicData(object):
 
     def transfer_s3(self, local_file_path: str, bucket: str, save_as_path: str) -> None:
         if self.__s3_client:
-            raise KeyError(" aws_access_key_id / aws_secret_access_key Not Found")
-        else:
             self.__s3_client.upload_file(local_file_path, bucket, save_as_path)
+        else:
+            raise KeyError(" aws_access_key_id / aws_secret_access_key Not Found")
 
 
 if __name__ == '__main__':
@@ -81,23 +86,20 @@ if __name__ == '__main__':
         if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
             time.sleep(60*10)
             continue
-        position = CollectPublicData(aws_access_key_id=aws_access_key_id,
-                                     aws_secret_access_key=aws_secret_access_key)
-        arrival = CollectPublicData(aws_access_key_id=aws_access_key_id,
-                                     aws_secret_access_key=aws_secret_access_key)
+        position = CollectPublicData(aws_access_key_id,
+                                     aws_secret_access_key)
+        arrival = CollectPublicData(aws_access_key_id,
+                                    aws_secret_access_key)
 
         _ = position.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선")
         _ = arrival.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL")
 
         position.transform(data_key='realtimePositionList')
-        position_file_path = position.save(save_dir_path="./data/position/")
-        position.transfer_s3(position_file_path, bucket='subway_arrival', save_as_path=f'position/{position_file_path}')
+        position_file_path = position.save(save_dir_path="/data/position/")
+        position.transfer_s3(position_file_path, bucket='subway-arrival', save_as_path=f'position/{position_file_path.split("/")[-1]}')
 
         arrival.transform(data_key='realtimeArrivalList')
-        arrival_file_path = arrival.save(save_dir_path="./data/arrival/")
-        arrival.transfer_s3(arrival_file_path, bucket='subway_arrival', save_as_path=f'arrival/{arrival_file_path}')
+        arrival_file_path = arrival.save(save_dir_path="/data/arrival/")
+        arrival.transfer_s3(arrival_file_path, bucket='subway-arrival', save_as_path=f'arrival/{arrival_file_path.split("/")[-1]}')
 
         time.sleep(90)
-
-
-

@@ -8,6 +8,7 @@
 
 /data/arrival/*.parquet
 /data/position/*.parquet
+/dev
 
 # User-specific stuff
 .idea/**/workspace.xml

@@ -16,7 +16,7 @@ from src.module.kafka_connection import KafkaConnector
 
 
 logger_class = LoadLogger()
-logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"{__file__}")
+logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log")
 
 ## API URL
 # 도착 일괄 : http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL
@@ -84,7 +84,7 @@ class CollectPublicData(object):
 
     def transform(self, data_key: str) -> None:
         self._json_data = self._get_data_json[data_key]
-        [i.update({"time": self._now}) for i in self._json_data]
+        [i.update({"time": str(self._now)}) for i in self._json_data]
         logger.info(f"Data Count : {len(self._json_data)}")
         if len(self._json_data) == 0:
             sys.exit(1)

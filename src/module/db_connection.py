@@ -1,8 +1,11 @@
 
 from typing import Union
-
+import logging
 import pandas as pd
 import pandas.io.sql as psql
+
+# logger = logging.getLogger(__name__)
+
 
 class PostgreSQL(object):
 

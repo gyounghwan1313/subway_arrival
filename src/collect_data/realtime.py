@@ -1,5 +1,4 @@
 
-
 from typing import Optional, Dict
 import os
 import sys
@@ -21,8 +20,8 @@ from src.module.api_status_check import api_status_check
 class CollectPublicData(object):
 
     def __init__(self,
-                 aws_access_key_id=None,
-                 aws_secret_access_key=None):
+                 aws_access_key_id: Optional[str] = None,
+                 aws_secret_access_key: Optional[str] = None):
 
         self._get_data = None
         self._pd_data = None
@@ -36,15 +35,25 @@ class CollectPublicData(object):
                                             aws_access_key_id=self.__aws_access_key_id,
                                             aws_secret_access_key=self.__aws_secret_access_key)
         else:
-
             self.__s3_client = None
 
     @api_status_check
-    def api_request(self,url):
+    def api_request(self, url: str) -> Optional[Dict]:
         self._now = dt.datetime.now()
         print(self._now)
-        # self._get_data = req.get(url=url)
-        return req.get(url=url)
+        self._result_json = req.get(url=url)
+
+        # api 상태 코드가 200이지만, api 결과 코드가 정상이지 않을 때는 errorMessage기 없음
+        # {'status': 500, 'code': 'INFO-200', 'message': '해당하는 데이터가 없습니다.', 'link': '', 'developerMessage': '', 'total': 0}
+
+        if 'errorMessage' not in self._result_json:
+            print("==ERROR==")
+            if "code" not in self._result_json:
+                print("==Code key is Not Found")
+                return None
+            return None
+        else:
+            return self._result_json
 
     def call(self, url, call_count=0) -> Optional[Dict]:
         if call_count >= 2:
@@ -52,7 +61,7 @@ class CollectPublicData(object):
 
         self._get_data_json = self.api_request(url=url)
 
-        if self._get_data_json: # 응답값이 없으면 : 에러가 발생함
+        if self._get_data_json: # 응답값이 없으면 : 에러가 발생함 -> 2번 더 호출하고 실패하면 멈춤
             return self._get_data_json
         else:
             time.sleep(10)
@@ -66,6 +75,7 @@ class CollectPublicData(object):
     def save(self, save_dir_path: str) -> str:
         file_path = f"{save_dir_path}{self._now.strftime('%Y-%m-%d-%H-%M-%S')}.parquet"
         self._pd_data.to_parquet(file_path, index=False)
+        print(file_path)
         return file_path
 
     def transfer_s3(self, local_file_path: str, bucket: str, save_as_path: str) -> None:
@@ -74,9 +84,11 @@ class CollectPublicData(object):
         else:
             raise KeyError(" aws_access_key_id / aws_secret_access_key Not Found")
 
+    def producing_kafka(self):
+
+
 
 if __name__ == '__main__':
-
 
     key = os.environ["api_key"]
     aws_access_key_id = os.environ["aws_access_key_id"]
@@ -84,7 +96,7 @@ if __name__ == '__main__':
 
     while True:
         if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
-            time.sleep(60*10)
+            time.sleep(60)
             continue
         position = CollectPublicData(aws_access_key_id,
                                      aws_secret_access_key)
@@ -102,4 +114,4 @@ if __name__ == '__main__':
         arrival_file_path = arrival.save(save_dir_path="/data/arrival/")
         arrival.transfer_s3(arrival_file_path, bucket='subway-arrival', save_as_path=f'arrival/{arrival_file_path.split("/")[-1]}')
 
-        time.sleep(90)
+        time.sleep(60)

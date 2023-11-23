@@ -16,7 +16,7 @@ from src.module.kafka_connection import KafkaConnector
 
 
 logger_class = LoadLogger()
-logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"{__name__}")
+logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"{__file__}")
 
 ## API URL
 # 도착 일괄 : http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL

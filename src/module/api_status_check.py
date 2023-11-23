@@ -16,7 +16,7 @@ def api_status_check(func: Callable[str]) -> Callable:
     :return:
     """
 
-    def check(*args, **kwargs) -> Optional[Dict[Any]]:
+    def check(*args, **kwargs):
         try:
             result = func(*args, **kwargs)
 

@@ -3,3 +3,6 @@ pandas
 pyarrow
 boto3
 openpyxl
+kafka-python
+psycopg2-binary
+sqlalchemy

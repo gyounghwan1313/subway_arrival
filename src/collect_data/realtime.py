@@ -84,7 +84,7 @@ class CollectPublicData(object):
         else:
             raise KeyError(" aws_access_key_id / aws_secret_access_key Not Found")
 
-    def producing_kafka(self):
+    # def producing_kafka(self):
 
 
 

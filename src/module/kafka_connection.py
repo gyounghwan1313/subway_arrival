@@ -26,7 +26,7 @@ class KafkaConnector():
 
     def send_to_topic(self, topic: str, msg: Any) -> None:
         try:
-            logger.info(f"Topic : {topic} / msg : {msg[:50]}.....")
+            logger.info(f"Topic : {topic}")
             self._producer.send(topic, msg).get(timeout=5)
             logger.info("Send End")
         except Exception as e:

@@ -5,6 +5,7 @@ from typing import Optional, Union, Dict, List
 import time
 import datetime as dt
 import boto3
+import traceback
 
 import pandas as pd
 import requests as req
@@ -13,10 +14,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.module.logging_util import LoadLogger
 from src.module.api_status_check import api_status_check
 from src.module.kafka_connection import KafkaConnector
-
-
-logger_class = LoadLogger()
-logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log")
 
 ## API URL
 # 도착 일괄 : http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL
@@ -130,8 +127,11 @@ class CollectPublicData(object):
         :return:
         """
         kafka_conn = KafkaConnector(broker=self.__broker)
-        for start_idx in range(0, len(self._json_data), unit):
-            kafka_conn.send_to_topic(topic=topic, msg=self._json_data[start_idx:start_idx+unit])
+        if unit:
+            for start_idx in range(0, len(self._json_data), unit):
+                kafka_conn.send_to_topic(topic=topic, msg=self._json_data[start_idx:start_idx+unit])
+        else:
+            kafka_conn.send_to_topic(topic=topic, msg=self._json_data)
 
 
 if __name__ == '__main__':
@@ -143,28 +143,35 @@ if __name__ == '__main__':
     position_topic = os.environ['KAFKA_POSITION_TOPIC']
     arrival_topic = os.environ['KAFKA_ARRIVAL_TOPIC']
 
+    logger_class = LoadLogger()
+    logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log")
     logger.info(f"""===========ENV===========\n Key : {key} \n Broker :{broker_1} / {broker_2} / {broker_3} \n Topics : {position_topic} / {arrival_topic} \n =========================""")
 
-    while True:
-        if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
+    try:
+        while True:
+            if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
+                time.sleep(60)
+                continue
+            position = CollectPublicData(broker=[broker_1, broker_2, broker_3])
+            arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
+
+            logger.info("===API CALL START===")
+            _ = position.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선")
+            _ = arrival.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL")
+            logger.info("===API CALL END===")
+
+            logger.info("===TRANSFORM START===")
+            position.transform(data_key='realtimePositionList')
+            arrival.transform(data_key='realtimeArrivalList')
+
+            logger.info("===Kafka Connect Start===")
+            position.producing_kafka(topic=position_topic)
+            arrival.producing_kafka(topic=arrival_topic)
+
+            logger.info("#################### DONE ####################")
+
             time.sleep(60)
-            continue
-        position = CollectPublicData(broker=[broker_1, broker_2, broker_3])
-        arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
-
-        logger.info("===API CALL START===")
-        _ = position.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선")
-        _ = arrival.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL")
-        logger.info("===API CALL END===")
-
-        logger.info("===TRANSFORM START===")
-        position.transform(data_key='realtimePositionList')
-        arrival.transform(data_key='realtimeArrivalList')
-
-        logger.info("===Kafka Connect Start===")
-        position.producing_kafka(topic=position_topic)
-        arrival.producing_kafka(topic=arrival_topic)
-
-        logger.info("#################### DONE ####################")
-
-        time.sleep(60)
+    except Exception as e:
+        logger.error(e)
+        logger.error(traceback.format_exc())
+        sys.exit(1)

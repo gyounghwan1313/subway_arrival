@@ -165,8 +165,8 @@ if __name__ == '__main__':
             arrival.transform(data_key='realtimeArrivalList')
 
             logger.info("===Kafka Connect Start===")
-            position.producing_kafka(topic=position_topic)
-            arrival.producing_kafka(topic=arrival_topic)
+            position.producing_kafka(topic=position_topic, unit=5)
+            arrival.producing_kafka(topic=arrival_topic, unit=5)
 
             logger.info("#################### DONE ####################")
 

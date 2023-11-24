@@ -10,6 +10,8 @@
 /data/position/*.parquet
 /dev
 
+nohup.out
+
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/**/tasks.xml

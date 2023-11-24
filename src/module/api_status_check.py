@@ -1,9 +1,16 @@
 
+from collections import Callable
+from typing import Optional, Dict, Any
+import sys
 import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def api_status_check(func):
+def api_status_check(func: Callable[str]) -> Callable:
     """
+    API 상테 코드 및 결과 코드에 따라 결과값 리턴
 
     :param func: function
     :return:
@@ -14,24 +21,19 @@ def api_status_check(func):
             result = func(*args, **kwargs)
 
             # API Status Code 체크
-            print("API Status Code : ", result.status_code)
+            logger.info(f"API Status Code : {result.status_code}", )
             if result.status_code != 200:
                 return None
+            # 200인 경우
             else:
-                # 200으로 떨어진 경우, response의 에러 코드확인
                 result_json = result.json()
-                error_message = result_json['errorMessage']
-
-                print('errorMessage ', error_message)
-                if error_message['status'] != 200:
-                    return None
-                if error_message['code'] != 'INFO-000':
-                    return None
-
                 return result_json
 
         except Exception as e:
-            print(e)
-            print(traceback.format_exc())
+            logger.info(e)
+            logger.info(traceback.format_exc())
+            sys.exit(1)
 
     return check
+
+

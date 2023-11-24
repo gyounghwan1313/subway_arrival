@@ -25,10 +25,17 @@ logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log
 
 class CollectPublicData(object):
 
+    """
+    공공 데이터 수집 Class
+    """
+
     def __init__(self,
                  broker: Union[str, List[str]] = None,
                  aws_access_key_id: Optional[str] = None,
                  aws_secret_access_key: Optional[str] = None):
+        """
+        :param broker: : 데이터를 전송할 Broker 주소를 입력받음
+        """
 
         self._get_data = None
         self._pd_data = None
@@ -47,6 +54,12 @@ class CollectPublicData(object):
 
     @api_status_check
     def api_request(self, url: str) -> Optional[req.Response]:
+        """
+        API 요청 - GET 방식
+
+        :param url: 요청 URL
+        :return: API 요청 결과 오브젝트
+        """
         self._now = dt.datetime.now()
         logger.info(f" time : {self._now}")
         self._result = req.get(url=url)
@@ -83,11 +96,15 @@ class CollectPublicData(object):
         logger.info(f"Data Count : {len(self._pd_data)}")
 
     def transform(self, data_key: str) -> None:
+        """
+        응답 데이터 중 필요 없는 정보는 삭제하고 요청시간 key를 데이터 별로 삽입
+
+        :param data_key: 필요한 정보가 들어 있는 Key
+        :return:
+        """
         self._json_data = self._get_data_json[data_key]
         [i.update({"time": str(self._now)}) for i in self._json_data]
         logger.info(f"Data Count : {len(self._json_data)}")
-        if len(self._json_data) == 0:
-            sys.exit(1)
 
     def _save_pdf(self, save_dir_path: str) -> str:
         file_path = f"{save_dir_path}{self._now.strftime('%Y-%m-%d-%H-%M-%S')}.parquet"
@@ -103,9 +120,18 @@ class CollectPublicData(object):
 
     # ToDo:  데이터값 유효성 검증 추가
 
-    def producing_kafka(self, topic):
+    def producing_kafka(self, topic, unit: Optional[int] = None) -> None:
+        """
+        Kafka로 데이터 전송, 보낼 데이터가 많은 경우에는 unit 단위로 잘라서 보냄
+        만약 보낼 데이터가 0개 이면 데이터를 보내지 않음
+
+        :param topic: kafka의 topic 이름
+        :param unit: 데이터를 분할해서 보낼 단위
+        :return:
+        """
         kafka_conn = KafkaConnector(broker=self.__broker)
-        kafka_conn.send_to_topic(topic=topic, msg=self._json_data)
+        for start_idx in range(0, len(self._json_data), unit):
+            kafka_conn.send_to_topic(topic=topic, msg=self._json_data[start_idx:start_idx+unit])
 
 
 if __name__ == '__main__':
@@ -117,11 +143,7 @@ if __name__ == '__main__':
     position_topic = os.environ['KAFKA_POSITION_TOPIC']
     arrival_topic = os.environ['KAFKA_ARRIVAL_TOPIC']
 
-    logger.info(f"""===========ENV===========
-                    Key : {key} \n 
-                    Broker :{broker_1} / {broker_2} / {broker_3} \n 
-                    Topics : {position_topic} / {arrival_topic} \n
-                    =========================""")
+    logger.info(f"""===========ENV===========\n Key : {key} \n Broker :{broker_1} / {broker_2} / {broker_3} \n Topics : {position_topic} / {arrival_topic} \n =========================""")
 
     while True:
         if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
@@ -130,13 +152,19 @@ if __name__ == '__main__':
         position = CollectPublicData(broker=[broker_1, broker_2, broker_3])
         arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
+        logger.info("===API CALL START===")
         _ = position.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선")
         _ = arrival.call(url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL")
+        logger.info("===API CALL END===")
 
+        logger.info("===TRANSFORM START===")
         position.transform(data_key='realtimePositionList')
-        position.producing_kafka(topic=position_topic)
-
         arrival.transform(data_key='realtimeArrivalList')
+
+        logger.info("===Kafka Connect Start===")
+        position.producing_kafka(topic=position_topic)
         arrival.producing_kafka(topic=arrival_topic)
+
+        logger.info("#################### DONE ####################")
 
         time.sleep(60)

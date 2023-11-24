@@ -20,14 +20,16 @@ class KafkaConnector():
                 retries=3,
             )
         except Exception as e:
-            logger.info(e)
+            logger.error(e)
             traceback.format_exc()
             sys.exit(1)
 
     def send_to_topic(self, topic: str, msg: Any) -> None:
         try:
+            logger.info(f"Topic : {topic} / msg : {msg}")
             self._producer.send(topic, msg).get(timeout=5)
+            logger.info("Send End")
         except Exception as e:
-            logger.info(e)
+            logger.error(e)
             traceback.format_exc()
             sys.exit(1)

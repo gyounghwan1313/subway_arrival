@@ -1,5 +1,5 @@
 
-from collections import Callable
+# from collections import Callable
 from typing import Optional, Dict, Any
 import sys
 import traceback
@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def api_status_check(func: Callable[str]) -> Callable:
+def api_status_check(func):
     """
     API 상테 코드 및 결과 코드에 따라 결과값 리턴
 
@@ -30,8 +30,8 @@ def api_status_check(func: Callable[str]) -> Callable:
                 return result_json
 
         except Exception as e:
-            logger.info(e)
-            logger.info(traceback.format_exc())
+            logger.error(e)
+            logger.error(traceback.format_exc())
             sys.exit(1)
 
     return check

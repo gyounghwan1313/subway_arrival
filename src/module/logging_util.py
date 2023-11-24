@@ -1,6 +1,6 @@
 
 import sys
-from collections.abc import Callable
+# from collections.abc import Callable
 from typing import Optional
 import logging
 import logging.handlers as log_handler
@@ -11,7 +11,7 @@ class LoadLogger(object):
     def __init__(self,
                  logging_format: str = '%(levelname)-8s %(asctime)s pid:%(process)d [%(filename)s:%(lineno)d] [%(module)s:%(funcName)s] >> %(message)s',
                  date_format: str = '%Y-%m-%d %H:%M:%S',
-                 level: Callable[int] = logging.INFO):
+                 level: object = logging.INFO):
         self.logging_format = logging_format
         self.date_format = date_format
         self.level = level

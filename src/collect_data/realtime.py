@@ -34,6 +34,7 @@ class CollectPublicData(object):
         :param broker: : 데이터를 전송할 Broker 주소를 입력받음
         """
 
+        self._get_data_json = None
         self._get_data = None
         self._pd_data = None
         self._now = None
@@ -174,4 +175,6 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(e)
         logger.error(traceback.format_exc())
+        logger.info(f"position._get_data_json {position._get_data_json}")
+        logger.info(f"arrvial._get_data_json {arrival._get_data_json}")
         sys.exit(1)

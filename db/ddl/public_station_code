@@ -1,0 +1,15 @@
+CREATE TABLE public.station_timetable (
+	departure_time varchar NOT NULL,
+	start_station varchar NOT NULL,
+	head_sign varchar NOT NULL,
+	operation varchar NOT NULL,
+	operation_order varchar NOT NULL,
+	lane_id varchar NOT NULL,
+	is_last_trip varchar NOT NULL,
+	is_first_trip varchar NOT NULL,
+	direction varchar NOT NULL,
+	"date" date NOT NULL DEFAULT CURRENT_DATE,
+	created_time timestamp NOT NULL DEFAULT now(),
+	updated_time timestamp NOT NULL DEFAULT now(),
+	CONSTRAINT station_timtetable_pk PRIMARY KEY (date, operation_order)
+);

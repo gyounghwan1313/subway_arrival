@@ -1,9 +1,0 @@
-CREATE TABLE public.station_code (
-	subway_id varchar NOT NULL,
-	station_id varchar NOT NULL,
-	station_name varchar NOT NULL,
-	line varchar NOT NULL,
-	created_time timestamp NOT NULL DEFAULT now(),
-	updated_time timestamp NOT NULL DEFAULT now(),
-	CONSTRAINT station_timetable_pk PRIMARY KEY (station_id)
-);

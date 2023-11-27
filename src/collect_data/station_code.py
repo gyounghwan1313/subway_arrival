@@ -27,8 +27,7 @@ class CollectStationCode(object):
         result_json = self.__request_api(
             url='https://pts.map.naver.com/cs-pc-subway/api/subway/lanes/1/stations?caller=pc_search')
 
-        self.operation_info_df = pd.DataFrame([{'operation_id': i['id'], 'operation_name': i['longName'], 'line': '1호선',
-                                                'created_time': dt.datetime.now(), 'updated_time': dt.datetime.now()}
+        self.operation_info_df = pd.DataFrame([{'operation_id': i['id'], 'operation_name': i['longName'], 'line': '1호선'}
                                                for i in
                                                result_json])
 
@@ -45,5 +44,8 @@ class CollectStationCode(object):
 if __name__ == '__main__':
     station_info = CollectStationCode()
     station_info.get_station_info()
-    station_info.stations_df
-    station_info.operation_info_df
+    station_df = station_info.stations_df
+    operation_df=station_info.operation_info_df
+
+    station_df.to_csv("./data/naver_staton_code.csv", index=False)
+    operation_df.to_csv("./data/naver_operation_info.csv", index=False)

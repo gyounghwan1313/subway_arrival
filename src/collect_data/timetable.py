@@ -49,7 +49,7 @@ class CollectSubwayTimeTable(object):
     def get_timetable(self):
         for idx, data in self.code_df.iterrows():
             code = data['station_id']
-            logger.info("{code}, {data['station_name']}")
+            logger.info(f"{code}, {data['station_name']}")
             result_json = self.request_api(
                 f"https://pts.map.naver.com/cs-pc-subway/api/subway/stations/{code}/schedule?date=&caller=pc_search")
 

@@ -1,3 +1,4 @@
+
 import os
 import sys
 from typing import Optional, Union, Dict, List
@@ -193,11 +194,11 @@ if __name__ == "__main__":
                 arrival.transform(data_key="realtimeArrivalList")
                 logger.info("===Kafka Connect Start===")
                 arrival.producing_kafka(topic=arrival_topic, unit=100)
-                logger.info("#################### DONE ####################")
+
             else:
                 logger.info("##### API Expected Error #####")
-            logger.info("##### Position END #####")
-
+            logger.info("##### Arrival END #####")
+            logger.info("#################### DONE ####################")
             time.sleep(60)
     except Exception as e:
         logger.error(e)

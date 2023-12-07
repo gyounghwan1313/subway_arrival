@@ -166,7 +166,7 @@ if __name__ == "__main__":
                 time.sleep(60)
                 continue
             position = CollectPublicData(broker=[broker_1, broker_2, broker_3])
-            arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
+            # arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
             logger.info("##### Position START #####")
             logger.info("===API CALL START===")
@@ -183,26 +183,26 @@ if __name__ == "__main__":
                 logger.info("##### API Expected Error #####")
             logger.info("##### Position END #####")
 
-            logger.info("##### Arrival #####")
-            logger.info("===API CALL START===")
-            arrival_result = arrival.call(
-                url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL"
-            )
-            logger.info("===API CALL END===")
-            if arrival_result:
-                logger.info("===TRANSFORM START===")
-                arrival.transform(data_key="realtimeArrivalList")
-                logger.info("===Kafka Connect Start===")
-                arrival.producing_kafka(topic=arrival_topic, unit=100)
-
-            else:
-                logger.info("##### API Expected Error #####")
-            logger.info("##### Arrival END #####")
+            # logger.info("##### Arrival #####")
+            # logger.info("===API CALL START===")
+            # arrival_result = arrival.call(
+            #     url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL"
+            # )
+            # logger.info("===API CALL END===")
+            # if arrival_result:
+            #     logger.info("===TRANSFORM START===")
+            #     arrival.transform(data_key="realtimeArrivalList")
+            #     logger.info("===Kafka Connect Start===")
+            #     arrival.producing_kafka(topic=arrival_topic, unit=100)
+            #
+            # else:
+            #     logger.info("##### API Expected Error #####")
+            # logger.info("##### Arrival END #####")
             logger.info("#################### DONE ####################")
             time.sleep(60)
     except Exception as e:
         logger.error(e)
         logger.error(traceback.format_exc())
         logger.info(f"position._get_data_json : {position._get_data_json}")
-        logger.info(f"arrvial._get_data_json : {arrival._get_data_json}")
+        # logger.info(f"arrvial._get_data_json : {arrival._get_data_json}")
         sys.exit(1)

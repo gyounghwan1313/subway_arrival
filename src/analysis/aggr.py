@@ -52,14 +52,18 @@ if __name__ == '__main__':
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"spark_aggr.log")
 
-
-    today = dt.datetime.today().strftime("%Y-%m-%d")
+    today = (dt.datetime.today() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
     try:
         spark_run = Aggr(date=today, bucket="prj-subway")
+        logger.info("==== Create SPARK Session ====")
         spark_run.create_session(name="aggr", aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+        logger.info("==== READ DATA ====")
         spark_run.read_data()
+        logger.info("==== DATA COUNT ====")
         spark_run.count()
+        logger.info("==== DATA Preprocessing ====")
         spark_run.delete_duplicate()
+        logger.info("==== DATA SAVA to S3 ====")
         spark_run.save()
     except Exception as e:
         logger.error(e)

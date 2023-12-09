@@ -1,4 +1,3 @@
-
 import os
 import sys
 from typing import Optional, Union, Dict, List
@@ -6,6 +5,7 @@ import time
 import datetime as dt
 import boto3
 import traceback
+import json
 
 import pandas as pd
 import requests as req
@@ -15,22 +15,22 @@ from src.module.logging_util import LoadLogger
 from src.module.api_status_check import api_status_check
 from src.module.kafka_connection import KafkaConnector
 
+
 ## API URL
 # 도착 일괄 : http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL
 # 실시간 위치 :"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선
 
 
 class CollectPublicData(object):
-
     """
     공공 데이터 수집 Class
     """
 
     def __init__(
-        self,
-        broker: Union[str, List[str]] = None,
-        aws_access_key_id: Optional[str] = None,
-        aws_secret_access_key: Optional[str] = None,
+            self,
+            broker: Union[str, List[str]] = None,
+            aws_access_key_id: Optional[str] = None,
+            aws_secret_access_key: Optional[str] = None,
     ):
         """
         :param broker: : 데이터를 전송할 Broker 주소를 입력받음
@@ -45,14 +45,15 @@ class CollectPublicData(object):
         self.__aws_access_key_id = aws_access_key_id
         self.__aws_secret_access_key = aws_secret_access_key
 
-        if aws_access_key_id and aws_secret_access_key:
-            self.__s3_client = boto3.client(
-                "s3",
+        if self.aws_access_key_id and self.aws_secret_access_key:
+            self.__aws_client = boto3.client(
+                "firehose",
                 aws_access_key_id=self.__aws_access_key_id,
                 aws_secret_access_key=self.__aws_secret_access_key,
+                region_name="ap-northeast-2"
             )
         else:
-            self.__s3_client = None
+            self.__aws_client = None
 
     @api_status_check
     def api_request(self, url: str) -> Optional[req.Response]:
@@ -91,7 +92,7 @@ class CollectPublicData(object):
                 return self._get_data_json
         else:  # 응답값이 없으면 : 에러가 발생함 -> 2번 더 호출하고 실패하면 멈춤
             logger.info("Retry")
-            logger.info(f"{call_count+1}")
+            logger.info(f"{call_count + 1}")
             time.sleep(10)
             return self.call(url, call_count + 1)
 
@@ -109,7 +110,7 @@ class CollectPublicData(object):
         """
         self._json_data = self._get_data_json[data_key]
         logger.info(f"Data Count : {len(self._json_data)}")
-        [i.update({"time": str(self._now)}) for i in self._json_data]
+        [i.update({"time": int(self._now.timestamp())}) for i in self._json_data]
 
     def _save_pdf(self, save_dir_path: str) -> str:
         file_path = f"{save_dir_path}{self._now.strftime('%Y-%m-%d-%H-%M-%S')}.parquet"
@@ -118,7 +119,7 @@ class CollectPublicData(object):
         return file_path
 
     def _transfer_s3(
-        self, local_file_path: str, bucket: str, save_as_path: str
+            self, local_file_path: str, bucket: str, save_as_path: str
     ) -> None:
         if self.__s3_client:
             self.__s3_client.upload_file(local_file_path, bucket, save_as_path)
@@ -127,7 +128,7 @@ class CollectPublicData(object):
 
     # ToDo:  데이터값 유효성 검증 추가
 
-    def producing_kafka(self, topic, unit: Optional[int] = None) -> None:
+    def _producing_kafka(self, topic, unit: Optional[int] = None) -> None:
         """
         Kafka로 데이터 전송, 보낼 데이터가 많은 경우에는 unit 단위로 잘라서 보냄
         만약 보낼 데이터가 0개 이면 데이터를 보내지 않음
@@ -140,32 +141,35 @@ class CollectPublicData(object):
         if unit:
             for start_idx in range(0, len(self._json_data), unit):
                 kafka_conn.send_to_topic(
-                    topic=topic, msg=self._json_data[start_idx : start_idx + unit]
+                    topic=topic, msg=self._json_data[start_idx: start_idx + unit]
                 )
         else:
             kafka_conn.send_to_topic(topic=topic, msg=self._json_data)
 
+    def producing_to_firehose(self, delivery_stream_name: str):
+        for idx, data in enumerate(self._json_data):
+            result = self.__aws_client.put_record(DeliveryStreamName=delivery_stream_name,
+                                                  Record={'Data': json.dumps(data).encode('utf-8')})
+            logger.info(f"[{idx + 1} / {len(data)}] result : {result}")
+
 
 if __name__ == "__main__":
     key = os.environ["api_key"]
-    broker_1 = os.environ["KAFKA_BROKER_1_PRIVATE"]
-    broker_2 = os.environ["KAFKA_BROKER_2_PRIVATE"]
-    broker_3 = os.environ["KAFKA_BROKER_3_PRIVATE"]
-    position_topic = os.environ["KAFKA_POSITION_TOPIC"]
-    arrival_topic = os.environ["KAFKA_ARRIVAL_TOPIC"]
+    aws_access_key_id = os.environ['AWS_ACCESS_KEY']
+    aws_secret_access_key = os.environ['AWS_SECRET_KEY']
+    aws_firehose_stream_name = os.environ['AWS_FIREHOSE_STREAM']
 
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log")
     logger.info(
-        f"""===========ENV===========\n Key : {key} \n Broker :{broker_1} / {broker_2} / {broker_3} \n Topics : {position_topic} / {arrival_topic} \n ========================="""
+        f"""===========ENV===========\n Key : {key} \n ========================="""
     )
 
     try:
         while True:
             if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
-                time.sleep(60)
-                continue
-            position = CollectPublicData(broker=[broker_1, broker_2, broker_3])
+                sys.exit(0)
+            position = CollectPublicData(aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
             # arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
             logger.info("##### Position START #####")
@@ -177,8 +181,8 @@ if __name__ == "__main__":
             if position_result:  # TRUE면
                 logger.info("===TRANSFORM START===")
                 position.transform(data_key="realtimePositionList")
-                logger.info("===Kafka Connect Start===")
-                position.producing_kafka(topic=position_topic, unit=None)
+                logger.info("===Firehose Connect Start===")
+                position.producing_to_firehose(delivery_stream_name=aws_firehose_stream_name)
             else:
                 logger.info("##### API Expected Error #####")
             logger.info("##### Position END #####")

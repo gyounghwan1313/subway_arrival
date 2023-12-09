@@ -45,7 +45,7 @@ class CollectPublicData(object):
         self.__aws_access_key_id = aws_access_key_id
         self.__aws_secret_access_key = aws_secret_access_key
 
-        if self.aws_access_key_id and self.aws_secret_access_key:
+        if self.__aws_secret_access_key and self.__aws_secret_access_key:
             self.__aws_client = boto3.client(
                 "firehose",
                 aws_access_key_id=self.__aws_access_key_id,

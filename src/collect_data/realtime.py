@@ -69,7 +69,7 @@ class CollectPublicData(object):
 
         return self._result
 
-    def call(self, url, call_count=0) -> Union[Dict, bool]:
+    def call(self, url, call_count=0) -> Union[Dict, bool, None]:
         if call_count >= 2:
             return None
 
@@ -81,8 +81,10 @@ class CollectPublicData(object):
         if self._get_data_json:
             if "errorMessage" not in self._get_data_json:
                 logger.info("==ERROR==")
+                logger.info(f"{self._get_data_json}")
                 if "code" not in self._get_data_json:
-                    logger.info("==Code key is Not Found")
+                    logger.info("==Code key is Not Found==")
+                    logger.info(f"{self._get_data_json}")
                     return None
                 # 데이터 없음 에러 정상 처리
                 elif self._get_data_json["code"] == "INFO-200":
@@ -110,7 +112,7 @@ class CollectPublicData(object):
         """
         self._json_data = self._get_data_json[data_key]
         logger.info(f"Data Count : {len(self._json_data)}")
-        [i.update({"time": int(self._now.timestamp())}) for i in self._json_data]
+        [i.update({"time": int((self._now+dt.timedelta(hours=9)).timestamp())}) for i in self._json_data]
 
     def _save_pdf(self, save_dir_path: str) -> str:
         file_path = f"{save_dir_path}{self._now.strftime('%Y-%m-%d-%H-%M-%S')}.parquet"
@@ -146,11 +148,11 @@ class CollectPublicData(object):
         else:
             kafka_conn.send_to_topic(topic=topic, msg=self._json_data)
 
-    def producing_to_firehose(self, delivery_stream_name: str):
+    def producing_to_firehose(self, delivery_stream_name: str) -> None:
         for idx, data in enumerate(self._json_data):
             result = self.__aws_client.put_record(DeliveryStreamName=delivery_stream_name,
                                                   Record={'Data': json.dumps(data).encode('utf-8')})
-            logger.info(f"[{idx + 1} / {len(data)}] result : {result}")
+            logger.info(f"[{idx + 1} / {len(self._json_data)}] result : {result}")
 
 
 if __name__ == "__main__":
@@ -165,6 +167,8 @@ if __name__ == "__main__":
         f"""===========ENV===========\n Key : {key} \n ========================="""
     )
 
+    api_call_count = 0
+
     try:
         while True:
             if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
@@ -173,7 +177,8 @@ if __name__ == "__main__":
             # arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
             logger.info("##### Position START #####")
-            logger.info("===API CALL START===")
+            api_call_count += 1
+            logger.info(f"===API CALL START [{api_call_count}]===")
             position_result = position.call(
                 url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimePosition/0/100/1호선"
             )
@@ -202,6 +207,7 @@ if __name__ == "__main__":
             # else:
             #     logger.info("##### API Expected Error #####")
             # logger.info("##### Arrival END #####")
+            logger.info(f"### API CALL COUNT : {api_call_count} ####")
             logger.info("#################### DONE ####################")
             time.sleep(60)
     except Exception as e:

@@ -1,4 +1,4 @@
-import logging
+
 import sys
 import os
 
@@ -13,12 +13,26 @@ from src.module.logging_util import LoadLogger
 
 
 class Aggr(object):
+    """
+    date
 
-    def __init__(self, date: str, bucket):
+    """
+
+    def __init__(self, date: str, bucket: str):
         self.bucket = bucket
-        self.date = date
+        self.today = dt.datetime.strptime(date, "%Y/%m/%d")
+        self.today_str = today
+        self.today_str_dash = self.today_str.replace("/","-")
 
-    def create_session(self, name, aws_access_key, aws_secret_key):
+        self.yesterday = self.today - dt.timedelta(days=1)
+        self.yesterday_str = self.yesterday.strftime("%Y/%m/%d")
+        self.yesterday_str_dash = self.yesterday_str.replace("/", "-")
+
+        self.tomorrow = self.today + dt.timedelta(days=1)
+        self.tomorrow_str = self.tomorrow.strftime("%Y/%m/%d")
+        self.tomorrow_str_dash = self.tomorrow_str.replace("/", "-")
+
+    def create_session(self, name: str, aws_access_key: str, aws_secret_key: str) -> None:
         self.spark = SparkSession.builder.appName(name)\
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")\
             .config("spark.hadoop.fs.s3a.access.key", aws_access_key)\
@@ -27,21 +41,23 @@ class Aggr(object):
             .config("spark.drivers.memory","1GB")\
             .getOrCreate()
 
-    def read_data(self,):
-        self.df = self.spark.read.json(f"s3a://{self.bucket}/topics/subway-position-topic/{self.date}/*.json.gz")
+    def read_data(self) -> None:
+        self.df = self.spark.read.json(f"s3a://{self.bucket}/kinesis/{self.yesterday_str}/*.gz")
 
-    def count(self):
-        self.df.count()
+    def count(self) -> None:
+        count = self.df.count()
+        logger.info(f"Raw Data Count : {count}")
 
-    def delete_duplicate(self):
+    def delete_duplicate(self) -> None:
+        self.df = self.df.where(f"recptnDt >= '{self.yesterday_str_dash}' and recptnDt < '{self.today_str_dash}'")
         self.distinct_df = self.df.select("trainNo", "statnId", "updnLine", "directAt", "statnTid").distinct()
         self.departure_df = self.df.filter("trainSttus = 2").groupBy("trainNo","statnId").agg(F.max("recptnDt").alias("departure_time")).orderBy("trainNo","statnId")
         self.arrival_df = self.df.filter("trainSttus = 1").groupBy("trainNo","statnId").agg(F.max("recptnDt").alias("arrival_time")).orderBy("trainNo","statnId")
         self.distinct_df = self.distinct_df.join(self.arrival_df,['trainNo','statnId'], 'left_outer')
         self.distinct_df = self.distinct_df.join(self.departure_df,['trainNo','statnId'], 'left_outer')
 
-    def save(self):
-        self.distinct_df.write.mode("overwrite").parquet(f"s3a://{self.bucket}/position/{self.date}/")
+    def save(self) -> None:
+        self.distinct_df.write.mode("overwrite").parquet(f"s3a://{self.bucket}/position/{self.yesterday_str_dash}/")
 
 
 if __name__ == '__main__':
@@ -52,7 +68,8 @@ if __name__ == '__main__':
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"spark_aggr.log")
 
-    today = (dt.datetime.today() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    today = (dt.datetime.today()).strftime("%Y/%m/%d")
+
     try:
         spark_run = Aggr(date=today, bucket="prj-subway")
         logger.info("==== Create SPARK Session ====")

@@ -85,10 +85,18 @@ class CollectPublicData(object):
                 if "code" not in self._get_data_json:
                     logger.info("==Code key is Not Found==")
                     logger.info(f"{self._get_data_json}")
+                    sys.exit(1)
                     return None
+                elif self._get_data_json["code"] == "ERROR-337":
+                    logger.error("최대요청 건수 초과")
+                    logger.error(f"{self._get_data_json}")
+                    sys.exit(1)
                 # 데이터 없음 에러 정상 처리
                 elif self._get_data_json["code"] == "INFO-200":
                     return False
+                else:
+                    logger.error(f"{self._get_data_json}")
+                    sys.exit(1)
                 return None
             else:
                 return self._get_data_json

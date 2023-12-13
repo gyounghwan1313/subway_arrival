@@ -165,7 +165,12 @@ if __name__ == '__main__':
                              user=db_user,
                              password=db_password)
 
-        test = LateAnalysis(db_connector=db_conn,date=target_day_str,load_file_bucket="prj-subway",aws_access_key_id=aws_access_key_id,aws_secret_access_key=aws_secret_access_key)
+        test = LateAnalysis(db_connector=db_conn,
+                            date=target_day_str,
+                            table_nm="delayed_timetable",
+                            load_file_bucket="prj-subway",
+                            aws_access_key_id=aws_access_key_id,
+                            aws_secret_access_key=aws_secret_access_key)
 
         logger.info("Load Master Code and Time Table")
         test.get_code_df()

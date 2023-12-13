@@ -38,7 +38,7 @@ class PostgreSQL(object):
         df = psql.read_sql_query(query, self._connect)
         return df
 
-    def as_session(self):
+    def sa_session(self):
         import sqlalchemy as sa
         self.sa_conn = sa.create_engine(f"postgresql://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__database}")
 

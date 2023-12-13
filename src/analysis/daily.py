@@ -95,7 +95,7 @@ class LateAnalysis(object):
         self.collect_df = pd.merge(left=self.collect_df, right=self.code_df, left_on='station_id', right_on='station_id', how='left')
 
     def _s3_find_file(self) -> None:
-        object_list = self.__s3_client.list_objects(Bucket=self._load_file_bucket, Prefix=f"position/{self.date}/")['Contents']
+        object_list = self.__s3_client.list_objects(Bucket=self._load_file_bucket, Prefix=f"position/{self._date}/")['Contents']
         self._file_list = [i['Key'] for i in object_list if "parquet" in i['Key']]
         logger.info(f"S3 File List : {self._file_list}")
         self._s3_file_path = self._file_list[0]

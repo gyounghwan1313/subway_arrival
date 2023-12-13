@@ -4,8 +4,6 @@ import logging
 import pandas as pd
 import pandas.io.sql as psql
 
-# logger = logging.getLogger(__name__)
-
 
 class PostgreSQL(object):
 
@@ -16,8 +14,14 @@ class PostgreSQL(object):
                  user: str,
                  password: str):
 
+        self.__host = host
+        self.__port = port
+        self.__database = database
+        self.__user = user
+        self.__password = password
+
         import psycopg2 as pg
-        self._connect = pg.connect(host=host,port=str(port),database=database,user=user,password=password)
+        self._connect = pg.connect(host=self.__host ,port=str(self.__port),database=self.__database,user=self.__user,password=self.__password )
 
     def sql_execute(self, query: str) -> None:
         self.cur = self._connect.cursor()
@@ -33,6 +37,10 @@ class PostgreSQL(object):
     def sql_dataframe(self, query: str) -> pd.DataFrame:
         df = psql.read_sql_query(query, self._connect)
         return df
+
+    def as_session(self):
+        import sqlalchemy as sa
+        self.sa_conn = sa.create_engine(f"postgresql://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__database}")
 
     def __del__(self):
         self._connect.close()

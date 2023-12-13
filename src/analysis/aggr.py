@@ -57,7 +57,9 @@ class Aggr(object):
         self.distinct_df = self.distinct_df.join(self.departure_df,['trainNo','statnId'], 'left_outer')
 
     def save(self) -> None:
+        self.distinct_df = self.distinct_df.coalesce(1)
         self.distinct_df.write.mode("overwrite").parquet(f"s3a://{self.bucket}/position/{self.yesterday_str_dash}/")
+
 
 
 if __name__ == '__main__':

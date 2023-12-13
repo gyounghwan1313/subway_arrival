@@ -9,6 +9,8 @@
 /data/arrival/*.parquet
 /data/position/*.parquet
 /dev
+*local.py
+
 
 nohup.out
 

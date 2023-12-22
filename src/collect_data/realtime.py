@@ -37,6 +37,7 @@ class CollectPublicData(object):
         :param broker: : 데이터를 전송할 Broker 주소를 입력받음
         """
 
+        self._now = dt.datetime.now()
         self._api_id = int(api_id)
         self.__sleep_time = None
         self._time_controller()
@@ -44,7 +45,7 @@ class CollectPublicData(object):
         self._get_data_json = None
         self._get_data = None
         self._pd_data = None
-        self._now = dt.datetime.now()
+
 
         self.__broker = broker
         self.__aws_access_key_id = aws_access_key_id

@@ -28,6 +28,7 @@ class CollectPublicData(object):
 
     def __init__(
             self,
+            api_id: Union[str, int],
             broker: Union[str, List[str]] = None,
             aws_access_key_id: Optional[str] = None,
             aws_secret_access_key: Optional[str] = None,
@@ -36,10 +37,14 @@ class CollectPublicData(object):
         :param broker: : 데이터를 전송할 Broker 주소를 입력받음
         """
 
+        self._api_id = int(api_id)
+        self.__sleep_time = None
+        self._time_controller()
+
         self._get_data_json = None
         self._get_data = None
         self._pd_data = None
-        self._now = None
+        self._now = dt.datetime.now()
 
         self.__broker = broker
         self.__aws_access_key_id = aws_access_key_id
@@ -54,6 +59,35 @@ class CollectPublicData(object):
             )
         else:
             self.__aws_client = None
+
+    def _time_controller(self):
+
+        if self._now.hour in [0, 1, 2, 3, 4]:
+            logger.info()
+            logger.info(f"{self._now} : Invalid Collect Time")
+            sys.exit(1)
+
+        logger.info(f"API ID : {self._api_id}")
+        if self._api_id == 1:
+            if self._now.hour in [15, 16, 17, 18, 19, 20, 21, 22, 23]:
+                logger.info(f"{self._now} : API ID [2] Collect Time")
+                sys.exit(1)
+            else:
+                self.__sleep_time = 36
+
+        elif self._api_id == 2 :
+            if self._now.hour in [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]:
+                logger.info(f"{self._now} : API ID [1] Collect Time")
+                sys.exit(1)
+            else:
+                self.__sleep_time = 36
+        else:
+            logger.error("== ERROR ==")
+            logger.error(f"== [{self.api_id}] API ID is Not Defined ==")
+
+        if self.__sleep_time:
+            logger.error("== ERROR ==")
+            logger.error(f"== Sleep Time Not Set==")
 
     @api_status_check
     def api_request(self, url: str) -> Optional[req.Response]:
@@ -162,8 +196,11 @@ class CollectPublicData(object):
                                                   Record={'Data': json.dumps(data).encode('utf-8')})
             logger.info(f"[{idx + 1} / {len(self._json_data)}] result : {result}")
 
+    def sleep(self):
+        time.sleep(self.__sleep_time)
 
 if __name__ == "__main__":
+    api_id = os.environ["API_ID"]
     key = os.environ["api_key"]
     aws_access_key_id = os.environ['AWS_ACCESS_KEY']
     aws_secret_access_key = os.environ['AWS_SECRET_KEY']
@@ -172,16 +209,14 @@ if __name__ == "__main__":
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"realtime.log")
     logger.info(
-        f"""===========ENV===========\n Key : {key} \n ========================="""
+        f"""==== ENV  Api Id : {api_id}, Key : {key} ===="""
     )
 
     api_call_count = 0
 
     try:
         while True:
-            if dt.datetime.now().hour in [0, 1, 2, 3, 4]:
-                sys.exit(0)
-            position = CollectPublicData(aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+            position = CollectPublicData(api_id=api_id,aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
             # arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
             logger.info("##### Position START #####")
@@ -217,7 +252,8 @@ if __name__ == "__main__":
             # logger.info("##### Arrival END #####")
             logger.info(f"### API CALL COUNT : {api_call_count} ####")
             logger.info("#################### DONE ####################")
-            time.sleep(60)
+            position.sleep()
+
     except Exception as e:
         logger.error(e)
         logger.error(traceback.format_exc())

@@ -64,7 +64,6 @@ class CollectPublicData(object):
     def _time_controller(self):
 
         if self._now.hour in [0, 1, 2, 3, 4]:
-            logger.info()
             logger.info(f"{self._now} : Invalid Collect Time")
             sys.exit(1)
 

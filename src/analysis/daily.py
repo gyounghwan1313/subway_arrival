@@ -115,6 +115,7 @@ class LateAnalysis(object):
 
         ## 연착 시간 계산
         # 실제 도착 시간 - 예정 출발시간 - 1분(탑승시간)
+        # 06:10:00 - 06:05:00 - 00:01:00 ====> 6분 연착
         self.merge_df['diff_time'] = self.merge_df['arrival_time'] - self.merge_df['departure_time']
         self.merge_df['diff_time'] = self.merge_df['diff_time'].apply(lambda x: int(x.total_seconds())-60)
 
@@ -153,7 +154,7 @@ if __name__ == '__main__':
 
 
     today = dt.datetime.today()
-    target_day =  dt.datetime.today() - dt.timedelta(days=1)
+    target_day = dt.datetime.today() - dt.timedelta(days=1)
     target_day_str = target_day.strftime("%Y-%m-%d")
     logger.info(f"Today : {today}")
     logger.info(f"Target Day (Yesterday) : {target_day_str}")

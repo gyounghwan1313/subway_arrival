@@ -199,7 +199,9 @@ class CollectPublicData(object):
     def sleep(self):
         time.sleep(self.__sleep_time)
 
+
 if __name__ == "__main__":
+
     api_id = os.environ["API_ID"]
     key = os.environ["api_key"]
     aws_access_key_id = os.environ['AWS_ACCESS_KEY']
@@ -217,7 +219,6 @@ if __name__ == "__main__":
     try:
         while True:
             position = CollectPublicData(api_id=api_id,aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-            # arrival = CollectPublicData(broker=[broker_1, broker_2, broker_3])
 
             logger.info("##### Position START #####")
             api_call_count += 1
@@ -234,22 +235,6 @@ if __name__ == "__main__":
             else:
                 logger.info("##### API Expected Error #####")
             logger.info("##### Position END #####")
-
-            # logger.info("##### Arrival #####")
-            # logger.info("===API CALL START===")
-            # arrival_result = arrival.call(
-            #     url=f"http://swopenAPI.seoul.go.kr/api/subway/{key}/json/realtimeStationArrival/ALL"
-            # )
-            # logger.info("===API CALL END===")
-            # if arrival_result:
-            #     logger.info("===TRANSFORM START===")
-            #     arrival.transform(data_key="realtimeArrivalList")
-            #     logger.info("===Kafka Connect Start===")
-            #     arrival.producing_kafka(topic=arrival_topic, unit=100)
-            #
-            # else:
-            #     logger.info("##### API Expected Error #####")
-            # logger.info("##### Arrival END #####")
             logger.info(f"### API CALL COUNT : {api_call_count} ####")
             logger.info("#################### DONE ####################")
             position.sleep()

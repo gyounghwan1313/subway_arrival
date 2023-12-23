@@ -40,7 +40,7 @@ class SparkLogCollect(object):
         self._parsing_count()
 
     def save(self) -> None:
-        self.db_conn.sql_execute(f"""INSERT INTO public.aggr_collected_raw_data ("date", cnt, created_time, updated_time) VALUES('{self.log_datetime}', {self.data_count}, now(), now());""")
+        self.db_conn.sql_execute(f"""INSERT INTO public.aggr_collected_raw_data ("date", cnt, created_time, updated_time) VALUES('{self.log_datetime-dt.timedelta(days=1)}', {self.data_count}, now(), now());""")
 
 
 if __name__ == '__main__':

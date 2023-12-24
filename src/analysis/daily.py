@@ -18,7 +18,7 @@ from src.module.db_connection import PostgreSQL
 class LateAnalysis(object):
 
     def __init__(self,
-                 db_connector: object,
+                 db_connector: PostgreSQL,
                  date: str,
                  table_nm: str,
                  load_file_bucket: str,

@@ -85,9 +85,11 @@ class CollectPublicData(object):
             logger.error("== ERROR ==")
             logger.error(f"== [{self.api_id}] API ID is Not Defined ==")
 
-        if self.__sleep_time:
+        if not self.__sleep_time:
             logger.error("== ERROR ==")
             logger.error(f"== Sleep Time Not Set==")
+        else:
+            logger.info(f"Sleep Time : {self.__sleep_time}")
 
     @api_status_check
     def api_request(self, url: str) -> Optional[req.Response]:

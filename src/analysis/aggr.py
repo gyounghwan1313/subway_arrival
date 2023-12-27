@@ -113,7 +113,7 @@ class Aggr(object):
         self.distinct_df = self.distinct_df.coalesce(1)
 
         # 정제 완료 후 저장된 데이터의 사이즈를 출력
-        saved_data_count = self.df.distinct_df()
+        saved_data_count = self.distinct_df.count()
         logger.info(f"Saved Data Count : {saved_data_count}")
 
         # S3에 저장

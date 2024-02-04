@@ -166,7 +166,7 @@ if __name__ == '__main__':
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"timetable.log")
     logger.info(
-        f"""===========ENV===========\n Key : {key} \n DB : {db_host} / {db_port} / {db_database} / {db_user} / {db_password} \n ========================="""
+        f"""===========ENV===========\n Key : {key} \n DB : {db_host} / {db_port} / {db_database} / {db_user} / {db_password}  / {aws_access_key} / {aws_secret_key} \n ========================="""
     )
 
     db_conn = PostgreSQL(host=db_host,
@@ -179,8 +179,8 @@ if __name__ == '__main__':
         timetable = CollectPublicTimeTable(key=key,
                                            db_connector=db_conn,
                                            table_name="timetable",
-                                           aws_secret_key=aws_access_key,
-                                           aws_access_key=aws_secret_key)
+                                           aws_access_key=aws_access_key,
+                                           aws_secret_key=aws_secret_key)
         timetable.run()
     except Exception as e:
         logger.error(e)

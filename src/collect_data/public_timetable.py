@@ -41,6 +41,7 @@ class CollectPublicTimeTable(object):
         self.__week_type_str = ["평일", "평일", "평일", "평일", "평일", "토요일", "일요일"][dt.datetime.today().weekday()]
         self.__week_type_code = 1 if self.__week_type_str == "평일" else 2 if self.__week_type_str == "토요일" else 3
 
+        self.total_df = None
         if aws_access_key and aws_secret_key:
             self.__aws_access_key = aws_access_key
             self.__aws_secret_key = aws_secret_key
@@ -142,14 +143,23 @@ class CollectPublicTimeTable(object):
 
             self.delete_data(code=code, date=self.today)
             self.call(url=f"http://openAPI.seoul.go.kr:8088/{self.__key}/json/SearchSTNTimeTableByIDService/1/1000/{code}/{self.__week_type_code}/1/")
-            self.transform(data_key='row')
+            df_1 = self.transform(data_key='row')
+            self.total_df = pd.concat([self.total_df, df_1])
             self.insert_to_db(df=self.raw_data_df)
-            self.upload_to_s3(df=self.raw_data_df, bucket="prj-subway", local_file_path=f"/data/timetable/{self.today}.parquet", s3_file_path="timetable/{self.today}.parquet")
 
             self.call(url=f"http://openAPI.seoul.go.kr:8088/{self.__key}/json/SearchSTNTimeTableByIDService/1/1000/{code}/{self.__week_type_code}/2/")
-            self.transform(data_key='row')
+            df_2 = self.transform(data_key='row')
+            self.total_df = pd.concat([self.total_df, df_2])
             self.insert_to_db(df=self.raw_data_df)
             time.sleep(1)
+
+        self.upload_to_s3(df=self.total_df,
+                          bucket="prj-subway",
+                          local_file_path=f"/data/timetable/{self.today}.parquet",
+                          s3_file_path=f"timetable/{self.today}.parquet")
+
+
+
 
 
 if __name__ == '__main__':

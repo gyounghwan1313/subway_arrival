@@ -6,3 +6,4 @@ openpyxl
 kafka-python
 psycopg2-binary
 sqlalchemy
+kinesis

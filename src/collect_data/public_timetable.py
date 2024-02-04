@@ -14,13 +14,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.module.logging_util import LoadLogger
 from src.module.api_status_check import api_status_check
 from src.module.db_connection import PostgreSQL
+from src.module.s3_util import S3Client
+
 
 class CollectPublicTimeTable(object):
 
     def __init__(self,
                  key: str,
                  db_connector: object,
-                 table_name: str):
+                 table_name: str,
+                 aws_access_key: Optional[str] = None,
+                 aws_secret_key: Optional[str] = None):
         self.__key = key
         self.__db_connector = db_connector
         self.__query = """select case when length(station_cd) <4 then rpad('0',4, station_cd)
@@ -36,6 +40,10 @@ class CollectPublicTimeTable(object):
         self.today = dt.datetime.today().strftime("%Y-%m-%d")
         self.__week_type_str = ["평일", "평일", "평일", "평일", "평일", "토요일", "일요일"][dt.datetime.today().weekday()]
         self.__week_type_code = 1 if self.__week_type_str == "평일" else 2 if self.__week_type_str == "토요일" else 3
+
+        if aws_access_key and aws_secret_key:
+            self.__aws_access_key = aws_access_key
+            self.__aws_secret_key = aws_secret_key
 
     def load_data_from_db(self, query: str) -> Optional[pd.DataFrame]:
         code_df = self.__db_connector.sql_dataframe(query)
@@ -116,6 +124,15 @@ class CollectPublicTimeTable(object):
         self.__db_connector.sql_execute(
             f"""delete from {self.table_name} where station_cd = '{code}' and date = '{date}';""")
 
+    def upload_to_s3(self,
+                     df: pd.DataFrame,
+                     bucket: str,
+                     local_file_path: str,
+                     s3_file_path: str) -> None:
+        df.to_parquet(local_file_path)
+        s3_client = S3Client(aws_access_key=self.__aws_access_key, aws_secret_key=self.__aws_secret_key)
+        s3_client.upload_object(bucket=bucket, local_file_path=local_file_path, s3_file_path=s3_file_path, delete=True)
+
     def run(self):
         logger.info("""===== DATA Collect START =====""")
         for idx, value in self.code_df.iterrows():
@@ -126,13 +143,13 @@ class CollectPublicTimeTable(object):
             self.delete_data(code=code, date=self.today)
             self.call(url=f"http://openAPI.seoul.go.kr:8088/{self.__key}/json/SearchSTNTimeTableByIDService/1/1000/{code}/{self.__week_type_code}/1/")
             self.transform(data_key='row')
-            self.insert_to_db(df=timetable.raw_data_df)
+            self.insert_to_db(df=self.raw_data_df)
+            self.upload_to_s3(df=self.raw_data_df, bucket="prj-subway", local_file_path=f"/data/timetable/{self.today}.parquet", s3_file_path="timetable/{self.today}.parquet")
 
             self.call(url=f"http://openAPI.seoul.go.kr:8088/{self.__key}/json/SearchSTNTimeTableByIDService/1/1000/{code}/{self.__week_type_code}/2/")
             self.transform(data_key='row')
-            self.insert_to_db(df=timetable.raw_data_df)
+            self.insert_to_db(df=self.raw_data_df)
             time.sleep(1)
-
 
 
 if __name__ == '__main__':
@@ -143,7 +160,8 @@ if __name__ == '__main__':
     db_user = os.environ['DB_USER']
     db_password = os.environ['DB_PASSWORD']
     key = os.environ["api_key"]
-
+    aws_access_key = os.environ['AWS_ACCESS_KEY']
+    aws_secret_key = os.environ['AWS_SECRET_KEY']
 
     logger_class = LoadLogger()
     logger = logger_class.time_rotate_file(log_dir="/log/", file_name=f"timetable.log")
@@ -158,7 +176,11 @@ if __name__ == '__main__':
                          password=db_password)
 
     try:
-        timetable = CollectPublicTimeTable(key=key, db_connector=db_conn, table_name="timetable")
+        timetable = CollectPublicTimeTable(key=key,
+                                           db_connector=db_conn,
+                                           table_name="timetable",
+                                           aws_secret_key=aws_access_key,
+                                           aws_access_key=aws_secret_key)
         timetable.run()
     except Exception as e:
         logger.error(e)

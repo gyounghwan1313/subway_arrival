@@ -37,7 +37,7 @@ class LoadLogger(object):
                           log_suffix: str = '-%Y-%m-%d',
                           change_time: Optional[str] = 'midnight',
                           interval_day: int = 1,
-                          retention_count: int = 30,
+                          retention_count: int = 10,
                           at_time: Optional[str] = None,
                           name: str = __name__):
 

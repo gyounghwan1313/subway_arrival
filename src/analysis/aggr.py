@@ -59,7 +59,8 @@ class Aggr(object):
         self.spark = SparkSession.builder.appName(name)\
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")\
             .config("spark.hadoop.fs.s3a.access.key", aws_access_key)\
-            .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key)\
+            .config("spark.hadoop.fs.s3a.secret.key", aws_secret_key) \
+            .config("spark.hadoop.fs.s3a.endpoint", "s3.ap-northeast-2.amazonaws.com") \
             .config("spark.executor.memory","1GB")\
             .config("spark.drivers.memory","1GB")\
             .getOrCreate()

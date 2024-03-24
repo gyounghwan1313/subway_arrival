@@ -108,7 +108,7 @@ class LateAnalysis(object):
 
     def calculate(self) -> None:
         self.join()
-        self.merge_df = test.merge_df.loc[pd.notnull(self.merge_df['arrival_time'])]
+        self.merge_df = self.merge_df.loc[pd.notnull(self.merge_df['arrival_time'])]
         self.merge_df['arrival_time'] = self.merge_df['arrival_time'].apply(pd.to_datetime)
         self.merge_df['departure_time'] = self.merge_df['date'].apply(str) + " " + self.merge_df['departure_time'].apply(str)
         self.merge_df['departure_time'] = self.merge_df['departure_time'].apply(pd.to_datetime)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
                              user=db_user,
                              password=db_password)
 
-        test = LateAnalysis(db_connector=db_conn,
+        analysis = LateAnalysis(db_connector=db_conn,
                             date=target_day_str,
                             table_nm="delayed_timetable",
                             load_file_bucket="prj-subway",
@@ -174,17 +174,17 @@ if __name__ == '__main__':
                             aws_secret_access_key=aws_secret_access_key)
 
         logger.info("Load Master Code and Time Table")
-        test.get_code_df()
-        test.get_timetable_df()
+        analysis.get_code_df()
+        analysis.get_timetable_df()
 
         logger.info("Load Collect Data from S3")
-        test.get_collect_data()
+        analysis.get_collect_data()
 
         logger.info("calculate Delayed Time")
-        test.calculate()
+        analysis.calculate()
 
         logger.info("DB INSERT Start")
-        test.save()
+        analysis.save()
     except Exception as e:
         logger.error(e)
         logger.error(traceback.format_exc())
